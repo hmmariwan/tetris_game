@@ -11,11 +11,11 @@ The user will be able to play a Tetris game on a laptop by using an arrow keys, 
 
 ![First game](documents/first-game.PNG)
 
-![Low score](documents/low-score.png)
+![Low score](documents/low-score.PNG)
 
-![Good_score](documents/good-score.png)
+![Good_score](documents/good-score.PNG)
 
 * I used a SweetAlert to display an alert box to the player about the game.
-![Paused game](documents/paused-game.png)
+![Paused game](documents/paused-game.PNG)
 
-![Game over](documents/game-over.png)
+![Game over](documents/game-over.PNG)
