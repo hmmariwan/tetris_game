@@ -19,3 +19,8 @@ The user will be able to play a Tetris game on a laptop by using an arrow keys, 
 ![Paused game](documents/paused-game.PNG)
 
 ![Game over](documents/game-over.PNG)
+
+## Content  
+* I used a W3Schools website to understand about the prototype property which allowed me to add new methods to a constructor function.
+
+
