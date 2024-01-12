@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris Game</title>
+    <!-- adding the SweetAlert JS for displaying a SweetAlert dialog box -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- adding the SweetAlert CSS for styling the alert -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+</head>
+
+<body>
+    <style>
+        body
+        {   background-color: rgb(170, 140, 198);
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+        #score{
+            display: inline-block;
+        }
+        div{
+            font-size: 25px;
+            font-weight: bold;
+            font-family: monospace;
+            text-align: center;
+        }
+        canvas{
+            display: block;
+            margin:0 auto;
+        }
+
+        #move-left,#move-down, #rotate, #move-right {
+            height: 50px;
+            margin-top: 5px;
+        }
+
+        #start-pause{
+            margin-bottom: 5px;
+            height: 50px;
+        }
+        .speed-div{
+            margin-top: 10px;
+        }
+        .swal2-popup .swal2-actions:not(.swal2-loading) .swal2-styled:hover {
+            background-color: #007bff !important;
+        }
+        .game-over {
+            width: 430px ; 
+            height: 530px ; 
+        }
+        .pause-game{
+            width: 450px;
+            height: 320px;
+        }
+        .swal2-popup .swal2-confirm:focus {/*To remove the default outline or shadow from the "Restart" and 'OK' buttons*/
+            outline: none !important;
+            box-shadow: none !important;
+        }
+
+    </style>
+
+    <div>
+        <h1>Tetris Game</h1>
+        <div>
+            Score : <div id="score">0</div>
+        </div>
+        <button id="start-pause">Start/Pause</button>
+        <canvas id="tetris" width="200" height="400"></canvas><!-- to draw and display the Tetris game grid and pieces-->
+        
+        <div id="controls">
+            <button id="move-left">Left</button>
+            <button id="move-down">Down</button>
+            <button id="rotate">Rotate</button>
+            <button id="move-right">Right</button>
+        </div>
+
+        <div class="speed-div">
+            <button id="speed-up">Speed up</button>
+            <button id="speed-value">Speed: </button>
+            <button id="speed-down">Speed down</button>
+        </div>
+    
+
+        <script>
+            /* creating the I Tetris shape which is a straight line.
+            It occupies a 4x1(4 squares long and 1 square wide) or
+            1x4(1 square wide and 4 squares tall) in the game grid.
+            Since it can be oriented horizontally and vertically,
+            it has 4 rotations so it has 4 outer arrays and 
+            each of them has 4 inner arrays because it occupies 4 squares */
+            const I = [
+            [
+                [0, 0, 0, 0],
+                [1, 1, 1, 1],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+            ],
+            [
+                [0, 0, 1, 0],
+                [0, 0, 1, 0],
+                [0, 0, 1, 0],
+                [0, 0, 1, 0],
+            ],
+            [
+                [0, 0, 0, 0],
+                [0, 0, 0, 0],
+                [1, 1, 1, 1],
+                [0, 0, 0, 0],
+            ],
+            [
+                [0, 1, 0, 0],
+                [0, 1, 0, 0],
+                [0, 1, 0, 0],
+                [0, 1, 0, 0],
+            ]
+            ];
+
+            const J = [/* creating the J Tetris shape which has 4 rotations so it
+                        has 4 outer arrays, 3 inner arrays for each rotation, 
+                        representing a 3x3 grid for each orientation.*/
+                [
+                    [1, 0, 0],
+                    [1, 1, 1],
+                    [0, 0, 0]
+                ],
+                [
+                    [0, 1, 1],
+                    [0, 1, 0],
+                    [0, 1, 0]
+                ],
+                [
+                    [0, 0, 0],
+                    [1, 1, 1],
+                    [0, 0, 1]
+                ],
+                [
+                    [0, 1, 0],
+                    [0, 1, 0],
+                    [1, 1, 0]
+                ]
+            ];
+
+            const L = [/* creating the L Tetris shape which has 4 rotations so it has 4
+                        outer arrays, 3 inner arrays for each rotation, 
+                        representing a 3x3 grid for each orientation.*/
+                [/* first outer array.The 1's denotes a block
+                of the L shape and 0's denotes an empty space.*/
+                    [0, 0, 1],
+                    [1, 1, 1],
+                    [0, 0, 0]
+                ],
+                [
+                    [0, 1, 0],
+                    [0, 1, 0],
+                    [0, 1, 1]
+                ],
+                [
+                    [0, 0, 0],
+                    [1, 1, 1],
+                    [1, 0, 0]
+                ],
+                [
+                    [1, 1, 0],
+                    [0, 1, 0],
+                    [0, 1, 0]
+                ]
+            ];
+
+            const O = [//creating the O Tetris shape.
+                [//the O shape is symmetrical so one outer array is required which has 4 inner arrays
+                    [0, 0, 0, 0],
+                    [0, 1, 1, 0],
+                    [0, 1, 1, 0],
+                    [0, 0, 0, 0],
+                ]
+            ];
+
+            const S = [//creating the S Tetris shape. It has 4 outer arrays
+                [       /*First rotation of the S Tetris shape. It has 3 inner arrays,
+                        forming a 3x3 grid for the rotation*/
+                    [0, 1, 1],
+                    [1, 1, 0],
+                    [0, 0, 0]
+                ],
+                [// Second rotation of the S Tetris shape
+                    [0, 1, 0],
+                    [0, 1, 1],
+                    [0, 0, 1]
+                ],
+                [// Third rotation of the S Tetris shape
+                    [0, 0, 0],
+                    [0, 1, 1],
+                    [1, 1, 0]
+                ],
+                [// Fourth rotation of the S Tetris shape
+                    [1, 0, 0],
+                    [1, 1, 0],
+                    [0, 1, 0]
+                ]
+            ];
+
+            const T = [/* creating the T Tetris shape. It has 3 inner arrays for each rotation, 
+                        representing a 3x3 grid for each orientation.*/
+                [
+                    [0, 1, 0],
+                    [1, 1, 1],
+                    [0, 0, 0]
+                ],
+                [
+                    [0, 1, 0],
+                    [0, 1, 1],
+                    [0, 1, 0]
+                ],
+                [
+                    [0, 0, 0],
+                    [1, 1, 1],
+                    [0, 1, 0]
+                ],
+                [
+                    [0, 1, 0],
+                    [1, 1, 0],
+                    [0, 1, 0]
+                ]
+            ];
+
+            const Z = [/* creating the Z Tetris shape. It has 3 inner arrays for each rotation, 
+                        representing a 3x3 grid for each orientation.*/
+                [
+                    [1, 1, 0],
+                    [0, 1, 1],
+                    [0, 0, 0]
+                ],
+                [
+                    [0, 0, 1],
+                    [0, 1, 1],
+                    [0, 1, 0]
+                ],
+                [
+                    [0, 0, 0],
+                    [1, 1, 0],
+                    [0, 1, 1]
+                ],
+                [
+                    [0, 1, 0],
+                    [1, 1, 0],
+                    [1, 0, 0]
+                ]
+            ];
+
+            const tetris = document.getElementById("tetris"); //  to render the Tetris game
+            const context = tetris.getContext("2d");// to get the 2D rendering context used to draw on the tetris variable
+            const scoreElement = document.getElementById("score");
+
+            const rows = 20;
+            const columns = 10;
+            const squareSize = 20;// each square on the Tetris grid has dimension of 20 pixels by 20 pixels
+            const vacant = "white"; // to color of an empty square
+
+            const speedLevels = [1000,800,600,400,300,200,100]; // Speed levels in milliseconds
+            let currentSpeedLevel = 0; // to index of the current speed level
+
+            //creating a function to draw a square
+            function drawSquare(x,y,color){
+                context.fillStyle = color;// to set the color of the square
+                context.fillRect(x*squareSize, y*squareSize, squareSize, squareSize);// to draw a square on the canvas
+
+                context.strokeStyle = "black"; // to set the border color for the square
+                context.strokeRect(x*squareSize,y*squareSize,squareSize,squareSize);// to draw the border of the square on the canvas
+            }
+
+            // to create the board
+            let board = [];// creating an empty array for the board which will be 2D
+            for( r = 0; r <rows; r++){// to iterate each row in the board.
+                board[r] = [];
+                for(c = 0; c < columns; c++){// to iterate each column in the current row.
+                    board[r][c] = vacant;// to assign vacant to each cell in the board
+                }
+            }
+
+            // to draw the board
+            function drawBoard(){
+                for( r = 0; r <rows; r++){
+                    for(c = 0; c < columns; c++){
+                        drawSquare(c,r,board[r][c]);// calling the drawSquare function to draw the square at the coordinates c & r
+                    }
+                }
+            }
+
+            drawBoard(); // to draw the initial state of the game board on the canvas.
+
+            // the Tetris shapes and their colors
+            const pieces = [
+                [Z,"red"],
+                [S,"green"],
+                [T,"yellow"],
+                [O,"blue"],
+                [L,"purple"],
+                [I,"cyan"],
+                [J,"orange"]
+            ];
+
+            // creating a constructor function that has objects with a set of properties and methods.
+            function Piece(tetromino,color){
+                this.tetromino = tetromino;// to store the Tetris shape
+                this.color = color; // to store the color of the Tetris shape
+                
+                this.tetrominoRotation = 0; // to start from the first rotation
+                this.activeTetromino = this.tetromino[this.tetrominoRotation];// to store the active rotation of the Tetris shape
+                
+                this.x = 3;// to start the Tetris shape on the game grid at column 3
+                this.y = -1;// to start the Tetris shape on the game grid at row -1 which is above the visible game area
+            }
+
+            // creating a function to generate random pieces
+            function randomPiece(){
+                let randomNumber = Math.floor(Math.random() * pieces.length) 
+                return new Piece( pieces[randomNumber][0],pieces[randomNumber][1]);
+            }
+
+            let p = randomPiece();
+
+            // creating a method for drawing the occupied squares of a Tetris piece on the game board. 
+            Piece.prototype.fill = function(color){// adding the method to the prototype of the Piece function
+                for( r = 0; r < this.activeTetromino.length; r++){// 2 for loops to iterate each element of the activeTetromino
+                    for(c = 0; c < this.activeTetromino.length; c++){
+                        // to draw only occupied squares
+                        if( this.activeTetromino[r][c]){
+                            drawSquare(this.x + c,this.y + r, color);
+                        }
+                    }
+                }
+            }
+
+            /* creating a method to draw a Tetris piece on the board with its current color.
+            It is called where the piece's position and state change.*/
+            Piece.prototype.draw = function(){
+                this.fill(this.color);
+            }
+
+            // creating a method for clearing the Tetris piece from the board
+            Piece.prototype.unDraw = function(){
+                this.fill(vacant);
+            }
+
+            // to move the piece to down
+            Piece.prototype.moveDown = function(){
+                if(!this.collision(0,1,this.activeTetromino)){// checking for any collision when the Tetris piece moves down by 1 unit
+                    this.unDraw(); // calling the method to clear the Tetris piece from its current position on the board.
+                    this.y++;// increasing the y coordinate by 1 that moves the Tetris piece one row down
+                    this.draw();// calling the method to draw the Tetris piece in its new position on the game board.
+                }else{
+                    // to lock the piece and generate a new one
+                    this.lock();
+                    p = randomPiece();
+                }
+                
+            }
+
+            // to move the piece to right
+            Piece.prototype.moveRight = function(){
+                if(!this.collision(1,0,this.activeTetromino)){
+                    this.unDraw();
+                    this.x++;
+                    this.draw();
+                }
+            }
+
+            // to move the piece to left
+            Piece.prototype.moveLeft = function(){
+                if(!this.collision(-1,0,this.activeTetromino)){
+                    this.unDraw();
+                    this.x--;
+                    this.draw();
+                }
+            }
+
+            // to rotate the piece
+            Piece.prototype.rotate = function(){
+                let nextPattern = this.tetromino[(this.tetrominoRotation + 1)%this.tetromino.length];// calculating the next rotation of the Tetris piece
+                let kick = 0;
+                
+                if(this.collision(0,0,nextPattern)){// to check if a collision will occur with the next rotation pattern at the current position.
+                    if(this.x > columns/2){
+                        // the piece is closer to the right wall
+                        kick = -1; // to move the piece to the left
+                    }else{
+                        // the piece is closer to the left wall
+                        kick = 1; // to move the piece to the right
+                    }
+                }
+                if(!this.collision(kick,0,nextPattern)){//there is no collision with the new rotation pattern:
+                    this.unDraw();// undrawing the Tetris piece from its current position
+                    this.x += kick;
+                    this.tetrominoRotation = (this.tetrominoRotation + 1)%this.tetromino.length;// updating the rotation index
+                    this.activeTetromino = this.tetromino[this.tetrominoRotation];// updating the active rotation
+                    this.draw();// drawing the Tetris piece in its new rotated position.
+                }
+            }
+
+            let score = 0;
+            
+            Piece.prototype.lock = function(){
+                for( r = 0; r < this.activeTetromino.length; r++){
+                    for(c = 0; c < this.activeTetromino.length; c++){
+                        // skipping the vacant squares
+                        if( !this.activeTetromino[r][c]){
+                            continue;
+                        }
+                        scoreElement.innerHTML = score;
+                        // game over
+                        if(this.y + r < 0){
+                            if(score>30){
+                                // creating an alert box that shows the final score
+                                Swal.fire({
+                                title: "Game Over",
+                                text: `You scored: ${score} ${score > 50 ? '🏆' : '😊'}. If you click close,you will need a double click on Start/Pause to get this dialog box.` ,
+                                icon: "error",
+                                //background: 'grey',
+                                confirmButtonText: "Restart",
+                                confirmButtonColor: "green",
+                                allowOutsideClick: false, // to prevent closing the modal by clicking outside
+                                showCancelButton: true, //to show the cancel button
+                                cancelButtonText: "Close", // Texting for the cancel button 
+                                cancelButtonColor: "red",
+                                //reverseButtons: true,// uncommented to swap the position of Restart and Close buttons
+                                customClass: {
+                                    popup: 'game-over' 
+                                }
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        resetGame(); // Calling resetGame function to restart the game
+                                    }
+                                });
+                            }else{
+                                // // creating an alert box that shows the final score which is 30 or less than that
+                                Swal.fire({
+                                title: "Game Over",
+                                text: `You scored: ${score} 😒. If you click close,you will need a double click on Start/Pause to get this dialog box.` ,
+                                icon: "error",
+                                //background: 'grey',
+                                confirmButtonText: "Restart",
+                                confirmButtonColor: "green",
+                                allowOutsideClick: false, // to prevent closing the modal by clicking outside
+                                showCancelButton: true, //to show the cancel button
+                                cancelButtonText: "Close", // Texting for the cancel button 
+                                cancelButtonColor: "red",
+                                //reverseButtons: true,// uncommented to swap the position of Restart and Close buttons
+                                customClass: {
+                                    popup: 'game-over' 
+                                }
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        resetGame(); // Calling resetGame function to restart the game
+                                    }
+                                });
+                            }
+
+                            // stopping request animation frame
+                            gameOver = true;
+                            break;
+                        }
+                        // to lock the piece
+                        board[this.y+r][this.x+c] = this.color;
+                    }
+                }
+                // to remove full rows
+                for(r = 0; r < rows; r++){
+                    let isRowFull = true;
+                    for( c = 0; c < columns; c++){
+                        isRowFull = isRowFull && (board[r][c] != vacant);
+                    }
+                    if(isRowFull){
+                        // if the rows is full, move down all the rows above it
+                        for( y = r; y > 1; y--){
+                            for( c = 0; c < columns; c++){
+                                board[y][c] = board[y-1][c];
+                            }
+                        }
+                        // the top rows board[0][..] has no rows above it
+                        for( c = 0; c < columns; c++){
+                            board[0][c] = vacant;
+                        }
+                        // to increment the score
+                        score += 10;
+                    }
+                }
+                // to update the board
+                drawBoard();
+                
+                // to update the score
+                scoreElement.innerHTML = score;
+            }
+
+            Piece.prototype.collision = function(x,y,piece){
+                for( r = 0; r < piece.length; r++){// creating nested loops to iterate each square in the current Tetris piece
+                    for(c = 0; c < piece.length; c++){
+                        // if the square is empty, skip it
+                        if(!piece[r][c]){
+                            continue;
+                        }
+                        // calculating the new coordinates of the piece after movement
+                        let newX = this.x + c + x;
+                        let newY = this.y + r + y;
+                        
+                        if(newX < 0 || newX >= columns || newY >= rows){// Checking if the new coordinates are outside the game board 
+                            return true;
+                        }
+                        
+                        if(newY < 0){// to skip the current iteration if the newY is less than 0
+                            continue;
+                        }
+                        // to check if there is a locked piece alrady in place
+                        if( board[newY][newX] != vacant){
+                            return true;
+                        }
+                    }
+                }
+                return false;// the method returns false if there is no collision during the iteration
+            }
+
+            let dropStart = Date.now();// to represent the timestamp when the current Tetris piece started moving down
+            let gameOver = false;// creating a flag to indicate that the game is not over
+            let isPaused = false;// creating a flag to indicate that the game is not paused
+
+            // creating a function for automatic downward movement of Tetris pieces
+            function drop() {
+                if (!isPaused) {
+                    let now = Date.now();// to represent the current timestamp
+                    let delta = now - dropStart; //  calculating the time elapsed since the last movement
+                    let speed = speedLevels[currentSpeedLevel]; // to get the current speed level interval
+                    if (delta > speed) {
+                        p.moveDown();// moving the Tetris piece down
+                        dropStart = Date.now();// updating the dropStart variable if the condition is satisfied
+                    }
+                    if (!gameOver) {
+                        requestAnimationFrame(drop);// using the requestAnimationFrame method for animation
+                    }
+                } else {
+                    // creating a SweetAlert that informs the player the game has been paused
+                    Swal.fire({
+                        title: "Game has been paused.",
+                        text: `You have scored ${score}. Click the Start/Pause button to restart the game again!`,
+                        icon: "information",
+                        confirmButtonText: "OK",
+                        confirmButtonColor:'green',
+                        allowOutsideClick:false,
+                        background:'#ccffcc',
+                        customClass:{
+                            popup: 'pause-game'
+                        }
+                    });
+                }
+            }
+
+            drop(); // to start the game initially
+
+            document.addEventListener("keydown",Control);//  setting up an event listener to detect keydown events on the entire document.
+
+            function Control(event){ //  creating a function to handle the event.
+                if(event.key === 'ArrowLeft'){
+                    p.moveLeft();  // calling the moveLeft method on the current Tetris piece that moves the piece one position to the left.
+                    dropStart = Date.now();// updating the variable to the current time which is used to control the piece's automatic downward movement.
+                }else if(event.key === 'ArrowUp'){
+                    p.rotate(); // calling the rotate method on the current Tetris piece that rotates the piece.
+                    dropStart = Date.now();
+                }else if(event.key === 'ArrowRight'){
+                    p.moveRight();// calling the moveRight method on the current Tetris piece that moves the piece one position to the right.
+                    dropStart = Date.now();
+                }else if(event.key === 'ArrowDown'){
+                    p.moveDown();// calling the moveDown method on the current Tetris piece that moves the piece one position down.
+                }
+            }
+
+            // creating a function to start or pause the game
+            function startPauseGame() {
+                if (isPaused) {
+                    isPaused = false;
+                    drop(); // Resume the game loop
+                } else {
+                    isPaused = true;
+                }
+            }
+
+            document.getElementById("start-pause").addEventListener("click", startPauseGame);
+ 
+            function resetGame() {
+                // to clear the board
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < columns; c++) {
+                        board[r][c] = vacant;
+                        drawSquare(c, r, vacant); // to clear the drawn squares on the canvas
+                    }
+                }
+
+                // to reset score
+                score = 0;
+                scoreElement.innerHTML = score;
+
+                // to generate a new random piece
+                p = randomPiece();
+
+                // to reset game over flag
+                gameOver = false;
+
+                // to resume the drop loop
+                isPaused = false;
+                drop();
+            }
+
+            // Adding event listeners to control buttons
+            document.getElementById("move-left").addEventListener("click", function() {
+                p.moveLeft();
+                dropStart = Date.now();
+            });
+
+            document.getElementById("move-right").addEventListener("click", function() {
+                p.moveRight();
+                dropStart = Date.now();
+            });
+
+            document.getElementById("rotate").addEventListener("click", function() {
+                p.rotate();
+                dropStart = Date.now();
+            });
+
+            document.getElementById("move-down").addEventListener("click", function() {
+                p.moveDown();
+            });
+
+
+            // Adding event listeners to change speed levels
+            document.getElementById("speed-up").addEventListener("click", function() {
+                if (currentSpeedLevel < speedLevels.length - 1) {
+                    currentSpeedLevel++;
+                    updateSpeedValue();
+                }
+            });
+
+            document.getElementById("speed-down").addEventListener("click", function() {
+                if (currentSpeedLevel > 0) {
+                    currentSpeedLevel--;
+                    updateSpeedValue();
+                }
+            });
+
+            // creating a function to update the displayed speed value on the button
+            function updateSpeedValue() {
+                const speedButton = document.getElementById("speed-value");
+                speedButton.textContent = `Speed: ${speedLevels[currentSpeedLevel]} ms`; // Update button label
+            }
+
+            // calling the function to initially set the speed value on the button
+            updateSpeedValue();
+
+        </script>
+    </div>
+</body>
+</html>
