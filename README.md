@@ -9,7 +9,7 @@ The user will be able to play a Tetris game on a laptop by using an arrow keys, 
 * I used JavaScript to create some functions and methods to create a square, board, draw, reset the game & score and controls & speed of the game.
 
 
-![First game](documents/first-game.png)
+![First game](documents/first-game.PNG)
 
 ![Low score](documents/low-score.png)
 
